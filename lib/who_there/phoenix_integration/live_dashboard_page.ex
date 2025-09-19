@@ -1,11 +1,16 @@
-defmodule WhoThere.PhoenixIntegration.LiveDashboardPage do
-  @moduledoc """
-  Phoenix LiveDashboard integration for WhoThere analytics.
-  
-  Provides real-time analytics visualization within Phoenix LiveDashboard.
-  """
-  
-  use Phoenix.LiveDashboard.PageBuilder
+if Code.ensure_loaded?(Phoenix.LiveDashboard.PageBuilder) do
+  defmodule WhoThere.PhoenixIntegration.LiveDashboardPage do
+    @moduledoc """
+    Phoenix LiveDashboard integration for WhoThere analytics.
+    
+    Provides real-time analytics visualization within Phoenix LiveDashboard.
+    
+    To use this module, add `phoenix_live_dashboard` to your dependencies:
+    
+        {:phoenix_live_dashboard, "~> 0.8"}
+    """
+    
+    use Phoenix.LiveDashboard.PageBuilder
   import Phoenix.LiveView.Helpers
   alias WhoThere.Analytics
   alias WhoThere.Analytics.DailyAnalytics
@@ -462,5 +467,20 @@ defmodule WhoThere.PhoenixIntegration.LiveDashboardComponents.PerformanceMetrics
       liveview_mounts: 89,
       error_rate: 0.1
     }
+  end
+  end
+else
+  defmodule WhoThere.PhoenixIntegration.LiveDashboardPage do
+    @moduledoc """
+    LiveDashboard integration is not available.
+    
+    To enable LiveDashboard integration, add the following to your dependencies:
+    
+        {:phoenix_live_dashboard, "~> 0.8"}
+    """
+    
+    def menu_link(_, _) do
+      {:error, "LiveDashboard not available. Add phoenix_live_dashboard to your dependencies."}
+    end
   end
 end

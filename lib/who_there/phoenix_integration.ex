@@ -102,7 +102,7 @@ defmodule WhoThere.PhoenixIntegration do
   end
 
   @impl true
-  def handle_info({:telemetry_event, event, measurements, metadata}, state) do
+  def handle_info({:telemetry_event, event, _measurements, _metadata}, state) do
     # Handle custom telemetry events if needed
     Logger.debug("Received telemetry event: #{inspect(event)}")
     {:noreply, state}
@@ -187,7 +187,7 @@ defmodule WhoThere.PhoenixIntegration do
   end
 
   # Main telemetry event handler
-  defp handle_telemetry_event(event, measurements, metadata, config) do
+  defp handle_telemetry_event(event, measurements, metadata, _config) do
     case event do
       [:phoenix, :endpoint, :stop] ->
         handle_phoenix_endpoint_stop(measurements, metadata)
@@ -321,8 +321,8 @@ defmodule WhoThere.PhoenixIntegration do
   end
 
   # Analytics error handler
-  defp handle_analytics_error(measurements, metadata) do
-    Logger.warn("Analytics error: #{inspect(metadata)}")
+  defp handle_analytics_error(_measurements, metadata) do
+    Logger.warning("Analytics error: #{inspect(metadata)}")
     
     # Could emit error metrics to monitoring systems
     if get_config(:emit_error_metrics, true) do
@@ -335,12 +335,15 @@ defmodule WhoThere.PhoenixIntegration do
   defp should_track_endpoint_event?(metadata) do
     # Filter out health checks, assets, etc.
     conn = metadata[:conn]
-    return false unless conn
-    
-    path = conn.request_path
-    
-    exclude_paths = get_config(:telemetry_exclude_paths, ["/health", "/metrics"])
-    not Enum.any?(exclude_paths, &String.starts_with?(path, &1))
+
+    if conn do
+      path = conn.request_path
+
+      exclude_paths = get_config(:telemetry_exclude_paths, ["/health", "/metrics"])
+      not Enum.any?(exclude_paths, &String.starts_with?(path, &1))
+    else
+      false
+    end
   end
 
   defp should_track_router_event?(metadata) do

@@ -1,0 +1,2 @@
+# This file ensures the migrations directory is tracked by git
+# Migration files will be generated automatically by Ash

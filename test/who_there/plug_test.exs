@@ -4,16 +4,11 @@ defmodule WhoThere.PlugTest do
 
   alias WhoThere.Plug, as: WhoTherePlug
 
-  # Mock connection helper
+  # Mock connection helper using Plug.Test
   defp build_conn(method \\ "GET", path \\ "/", headers \\ []) do
-    %Plug.Conn{
-      method: method,
-      request_path: path,
-      remote_ip: {192, 168, 1, 100},
-      req_headers: headers,
-      private: %{},
-      before_send: []
-    }
+    Plug.Test.conn(method, path)
+    |> Map.put(:remote_ip, {192, 168, 1, 100})
+    |> Map.put(:req_headers, headers)
   end
 
   defp add_header(conn, name, value) do

@@ -1,6 +1,8 @@
 defmodule WhoThere.Resources.AnalyticsConfigurationTest do
   use ExUnit.Case, async: true
 
+  import Ash.Expr
+
   alias WhoThere.Resources.AnalyticsConfiguration
 
   setup do
@@ -174,7 +176,7 @@ defmodule WhoThere.Resources.AnalyticsConfigurationTest do
       assert {:ok, [config_with_calc]} =
                AnalyticsConfiguration
                |> Ash.Query.load(:privacy_score)
-               |> Ash.Query.filter(id == config.id)
+               |> Ash.Query.filter(expr(id == ^config.id))
                |> AnalyticsConfiguration.read(tenant: tenant_id)
 
       # Should get maximum privacy score
@@ -195,7 +197,7 @@ defmodule WhoThere.Resources.AnalyticsConfigurationTest do
       assert {:ok, [config_with_calc]} =
                AnalyticsConfiguration
                |> Ash.Query.load(:compliance_level)
-               |> Ash.Query.filter(id == config.id)
+               |> Ash.Query.filter(expr(id == ^config.id))
                |> AnalyticsConfiguration.read(tenant: tenant_id)
 
       assert config_with_calc.compliance_level == "Strict"
@@ -214,7 +216,7 @@ defmodule WhoThere.Resources.AnalyticsConfigurationTest do
       assert {:ok, [config_with_calc]} =
                AnalyticsConfiguration
                |> Ash.Query.load(:feature_summary)
-               |> Ash.Query.filter(id == config.id)
+               |> Ash.Query.filter(expr(id == ^config.id))
                |> AnalyticsConfiguration.read(tenant: tenant_id)
 
       summary = config_with_calc.feature_summary

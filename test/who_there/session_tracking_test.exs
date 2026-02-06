@@ -158,7 +158,7 @@ defmodule WhoThere.SessionTrackingTest do
       
       # With current mock implementation, this returns {:ok, updated_session}
       # In real implementation, it should return {:error, :session_not_found}
-      assert match?({:ok, _} | {:error, :session_not_found}, result)
+      assert match?({:ok, _}, result) or match?({:error, :session_not_found}, result)
     end
   end
   
@@ -406,7 +406,7 @@ defmodule WhoThere.SessionTrackingTest do
       end
       
       # Should either succeed or handle gracefully
-      assert match?({_, _} | {:error, :malformed_request}, result)
+      assert match?({_, _}, result) or match?({:error, :malformed_request}, result)
     end
     
     test "requires tenant parameter" do

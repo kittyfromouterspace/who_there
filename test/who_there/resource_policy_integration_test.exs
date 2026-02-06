@@ -16,6 +16,8 @@ defmodule WhoThere.ResourcePolicyIntegrationTest do
   use ExUnit.Case, async: false
   use WhoThere.DataCase
 
+  import Ash.Expr
+
   alias WhoThere.{Domain, Resources}
   alias WhoThere.Resources.{AnalyticsEvent, AnalyticsConfiguration, Session, DailyAnalytics}
 
@@ -195,7 +197,7 @@ defmodule WhoThere.ResourcePolicyIntegrationTest do
       result =
         Session
         |> Ash.Query.new()
-        |> Ash.Query.filter(id == ^session_a.id)
+        |> Ash.Query.filter(expr(id == ^session_a.id))
         |> Ash.Query.set_tenant(@tenant_b)
         |> Ash.read()
 
@@ -480,7 +482,7 @@ defmodule WhoThere.ResourcePolicyIntegrationTest do
         AnalyticsEvent
         |> Ash.Query.new()
         |> Ash.Query.set_tenant(@tenant_a)
-        |> Ash.Query.filter(id == ^event_a.id)
+        |> Ash.Query.filter(expr(id == ^event_a.id))
         |> Ash.Query.load(:session)
         |> Ash.read!()
         |> List.first()
@@ -500,7 +502,7 @@ defmodule WhoThere.ResourcePolicyIntegrationTest do
         AnalyticsEvent
         |> Ash.Query.new()
         |> Ash.Query.set_tenant(@tenant_b)
-        |> Ash.Query.filter(session_id == ^session_a.id)
+        |> Ash.Query.filter(expr(session_id == ^session_a.id))
         |> Ash.read!()
 
       # Should return no events since session belongs to different tenant
@@ -643,7 +645,7 @@ defmodule WhoThere.ResourcePolicyIntegrationTest do
 
   # Helper functions
 
-  defp create_analytics_event(tenant, attrs \\ %{}) do
+  defp local_create_analytics_event(tenant, attrs \\ %{}) do
     default_attrs = %{
       tenant_id: tenant,
       event_type: :page_view,
@@ -660,7 +662,7 @@ defmodule WhoThere.ResourcePolicyIntegrationTest do
     |> Ash.create!(tenant: tenant)
   end
 
-  defp create_session(tenant, attrs \\ %{}) do
+  defp local_create_session(tenant, attrs \\ %{}) do
     default_attrs = %{
       tenant_id: tenant,
       fingerprint: "test_fingerprint",
@@ -699,7 +701,7 @@ defmodule WhoThere.ResourcePolicyIntegrationTest do
     |> Ash.create!(tenant: tenant)
   end
 
-  defp create_analytics_config(tenant, attrs \\ %{}) do
+  defp local_create_analytics_config(tenant, attrs \\ %{}) do
     default_attrs = %{
       tenant_id: tenant,
       track_page_views: true,

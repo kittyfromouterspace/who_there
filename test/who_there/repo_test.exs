@@ -1,5 +1,7 @@
 defmodule WhoThere.RepoTest do
   use ExUnit.Case, async: true
+
+  import Ecto.Query
   import WhoThere.TestHelpers
 
   alias WhoThere.Repo

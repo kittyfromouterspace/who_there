@@ -1,6 +1,8 @@
 defmodule WhoThere.Resources.AnalyticsEventTest do
   use ExUnit.Case, async: true
 
+  import Ash.Expr
+
   alias WhoThere.Resources.AnalyticsEvent
 
   setup do
@@ -319,7 +321,7 @@ defmodule WhoThere.Resources.AnalyticsEventTest do
       assert {:ok, [event_with_calc]} =
                AnalyticsEvent
                |> Ash.Query.load(:geographic_label)
-               |> Ash.Query.filter(id == event.id)
+               |> Ash.Query.filter(expr(id == ^event.id))
                |> AnalyticsEvent.read(tenant: tenant_id)
 
       assert event_with_calc.geographic_label == "New York, US"

@@ -77,11 +77,13 @@ defmodule WhoThere.MixProject do
       {:postgrex, "~> 0.19"},
       {:phoenix, "~> 1.8"},
       {:phoenix_live_view, "~> 1.0"},
-      {:igniter, "~> 0.3"},
+      {:igniter, "~> 0.3", only: [:dev, :test], runtime: false},
       {:plug, "~> 1.15"},
       {:telemetry, "~> 1.2"},
       {:jason, "~> 1.4"},
-      {:picosat_elixir, "~> 0.2"},
+      # SAT solver for Ash - optional, host app may provide
+      {:picosat_elixir, "~> 0.2", optional: true},
+      {:simple_sat, "~> 0.1", optional: true},
       {:ex_doc, "~> 0.34", only: :dev, runtime: false}
     ]
   end

@@ -14,6 +14,8 @@ defmodule WhoThere.Resources.AnalyticsEvent do
     table("analytics_events")
     repo(WhoThere.Repo)
 
+    identity_wheres_to_sql unique_event: "session_id IS NOT NULL"
+
     custom_indexes do
       # Primary query patterns for performance
       index([:tenant_id, :timestamp])

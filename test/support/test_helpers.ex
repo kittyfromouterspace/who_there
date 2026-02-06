@@ -1,7 +1,9 @@
 defmodule WhoThere.TestHelpers do
   @moduledoc """
-  Test helpers for WhoThere tests.
+  Test helpers for WhoThere analytics testing.
   """
+  
+  import ExUnit.Assertions
 
   import Ecto.Changeset
 

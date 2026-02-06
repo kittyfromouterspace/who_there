@@ -134,7 +134,7 @@ defmodule WhoThere.Plug do
   defp register_response_tracking(conn, opts, start_time) do
     # Register a callback to capture response data
     register_before_send(conn, fn conn ->
-      if Plug.Conn.get_private(conn, :who_there_tracking) do
+      if Map.has_key?(conn.private, :who_there_tracking) do
         duration_ms =
           System.convert_time_unit(
             System.monotonic_time() - start_time,
@@ -522,7 +522,7 @@ defmodule WhoThere.Plug do
   end
 
   defp update_tracking_with_response(conn, duration_ms, opts) do
-    tracking_data = Plug.Conn.get_private(conn, :who_there_tracking)
+    tracking_data = Map.get(conn.private, :who_there_tracking)
 
     if tracking_data && opts.async_tracking do
       # Update the event with response data

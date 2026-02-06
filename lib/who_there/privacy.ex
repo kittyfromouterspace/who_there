@@ -41,6 +41,42 @@ defmodule WhoThere.Privacy do
   def anonymize_ip(ip), do: ip
 
   @doc """
+  Anonymizes an IP address with configurable anonymization levels.
+  
+  - `:partial` - Anonymizes last octet of IPv4 or last 80 bits of IPv6 (default behavior)
+  - `:full` - Anonymizes last two octets of IPv4 or last 112 bits of IPv6 for stronger privacy
+  
+  ## Examples
+  
+      iex> WhoThere.Privacy.anonymize_ip({192, 168, 1, 100}, :partial)
+      {192, 168, 1, 0}
+      
+      iex> WhoThere.Privacy.anonymize_ip({192, 168, 1, 100}, :full)
+      {192, 168, 0, 0}
+  """
+  def anonymize_ip(ip, :partial), do: anonymize_ip(ip)
+  
+  def anonymize_ip(ip, :full) when is_tuple(ip) do
+    case tuple_size(ip) do
+      4 -> anonymize_ipv4_full(ip)
+      8 -> anonymize_ipv6_full(ip)
+      _ -> ip
+    end
+  end
+  
+  def anonymize_ip(ip, :full) when is_binary(ip) do
+    case :inet.parse_address(String.to_charlist(ip)) do
+      {:ok, parsed_ip} ->
+        anonymized = anonymize_ip(parsed_ip, :full)
+        :inet.ntoa(anonymized) |> to_string()
+      {:error, _} ->
+        ip
+    end
+  end
+  
+  def anonymize_ip(ip, _level), do: ip
+
+  @doc """
   Creates a hash of an IP address for analytics while preserving privacy.
 
   The hash includes a random salt to prevent rainbow table attacks.
@@ -179,14 +215,93 @@ defmodule WhoThere.Privacy do
 
   def should_exclude?(_), do: false
 
+  @doc """
+  Sanitizes a user agent string by removing potentially identifying information.
+  
+  Removes version numbers, build information, and other identifying details
+  while preserving general browser and OS information for analytics.
+  """
+  def sanitize_user_agent(user_agent) when is_binary(user_agent) do
+    user_agent
+    |> String.replace(~r/\b\d+\.\d+\.\d+(\.\d+)?\b/, "x.x.x")  # Version numbers
+    |> String.replace(~r/\b[A-Z0-9]{8,}\b/, "XXXXXXXX")         # Long alphanumeric strings
+    |> String.replace(~r/\(.+?\)/, "()")                        # Remove details in parentheses
+    |> String.replace(~r/\s+/, " ")                             # Normalize whitespace
+    |> String.trim()
+  end
+
+  def sanitize_user_agent(user_agent), do: user_agent
+
+  @doc """
+  Anonymizes IP-related data in a data structure.
+  
+  Recursively finds and anonymizes IP addresses in maps and lists.
+  """
+  def anonymize_ip_data(data) when is_map(data) do
+    data
+    |> Map.update(:ip_address, nil, &anonymize_ip/1)
+    |> Map.update(:client_ip, nil, &anonymize_ip/1)
+    |> Map.update(:remote_ip, nil, &anonymize_ip/1)
+    |> Map.update(:forwarded_for, nil, &anonymize_ip/1)
+    |> Enum.map(fn {k, v} -> {k, anonymize_ip_data(v)} end)
+    |> Map.new()
+  end
+
+  def anonymize_ip_data(data) when is_list(data) do
+    Enum.map(data, &anonymize_ip_data/1)
+  end
+
+  def anonymize_ip_data(data) when is_binary(data) do
+    # Check if this looks like an IP address
+    if Regex.match?(~r/^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/, data) do
+      anonymize_ip(data)
+    else
+      data
+    end
+  end
+
+  def anonymize_ip_data(data), do: data
+
+  @doc """
+  Removes personally identifiable information from data.
+  
+  This function sanitizes various types of PII from structured data.
+  """
+  def remove_pii(data) when is_map(data) do
+    data
+    |> Map.drop([:email, :phone, :ssn, :credit_card])  # Remove known PII fields
+    |> Map.update(:user_agent, nil, &sanitize_user_agent/1)
+    |> anonymize_ip_data()
+    |> Enum.map(fn {k, v} -> {k, remove_pii(v)} end)
+    |> Map.new()
+  end
+
+  def remove_pii(data) when is_list(data) do
+    Enum.map(data, &remove_pii/1)
+  end
+
+  def remove_pii(data) when is_binary(data) do
+    sanitize_pii(data)
+  end
+
+  def remove_pii(data), do: data
+
   # Private functions
 
   defp anonymize_ipv4({a, b, c, _d}) do
     {a, b, c, 0}
   end
 
+  defp anonymize_ipv4_full({a, b, _c, _d}) do
+    {a, b, 0, 0}
+  end
+
   defp anonymize_ipv6({a, b, c, d, _e, _f, _g, _h}) do
     {a, b, c, d, 0, 0, 0, 0}
+  end
+
+  defp anonymize_ipv6_full({a, b, _c, _d, _e, _f, _g, _h}) do
+    {a, b, 0, 0, 0, 0, 0, 0}
   end
 
   defp check_email(acc, text) do

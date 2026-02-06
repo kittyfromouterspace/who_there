@@ -93,6 +93,8 @@ defmodule WhoThere.Resources.Session do
     end
 
     update :update do
+      require_atomic?(false)
+
       accept([
         :last_seen_at,
         :page_views,

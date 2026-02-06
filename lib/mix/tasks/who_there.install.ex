@@ -1,135 +1,77 @@
 defmodule Mix.Tasks.WhoThere.Install do
-  @shortdoc "Install WhoThere analytics library in a Phoenix application"
+  @shortdoc "Install WhoThere analytics into your Phoenix/Ash application"
   @moduledoc """
-  Install and configure WhoThere analytics library in a Phoenix application.
+  Installs WhoThere analytics library into a Phoenix application.
 
   This task will:
-  - Add necessary configuration to config files
-  - Generate database migrations if needed
-  - Add routing configuration examples
-  - Install necessary dependencies
-  - Set up example implementations
+  - Configure WhoThere to use your application's repo
+  - Add WhoThere.Domain to your ash_domains config
+  - Copy database migrations to your priv/repo/migrations
+  - Generate example tenant resolver and router integration
+
+  ## Usage
+
+      mix who_there.install
 
   ## Options
 
-  * `--no-config` - Skip generating configuration files
-  * `--no-migrations` - Skip generating database migrations  
+  * `--repo` - Specify the repo module (default: auto-detected)
   * `--dry-run` - Show what would be done without making changes
-  * `--tenant-resolver` - Specify a custom tenant resolver function
 
   ## Examples
 
       mix who_there.install
+      mix who_there.install --repo MyApp.Repo
       mix who_there.install --dry-run
-      mix who_there.install --no-migrations
-      mix who_there.install --tenant-resolver MyApp.get_tenant/1
 
   """
 
-  use Mix.Task
-  require Logger
+  use Igniter.Mix.Task
 
-  @doc false
-  def run(args) do
-    {opts, _args} =
-      OptionParser.parse!(args,
+  @impl Igniter.Mix.Task
+  def info(_argv, _composing_task) do
+    %Igniter.Mix.Task.Info{
+      group: :who_there,
+      adds_deps: [],
+      installs: [],
+      example: "mix who_there.install --repo MyApp.Repo"
+    }
+  end
+
+  @impl Igniter.Mix.Task
+  def igniter(igniter, argv) do
+    {opts, _} =
+      OptionParser.parse!(argv,
         switches: [
-          no_config: :boolean,
-          no_migrations: :boolean,
-          dry_run: :boolean,
-          tenant_resolver: :string
-        ],
-        aliases: [
-          d: :dry_run
+          repo: :string,
+          dry_run: :boolean
         ]
       )
 
-    Mix.shell().info("Installing WhoThere Analytics...")
+    app_name = Igniter.Project.Application.app_name(igniter)
+    repo = opts[:repo] || detect_repo(igniter, app_name)
 
-    if opts[:dry_run] do
-      Mix.shell().info("DRY RUN MODE - No changes will be made")
-    end
-
-    try do
-      # Check if this is a Phoenix project
-      ensure_phoenix_project!()
-
-      # Install dependencies if needed  
-      unless opts[:no_deps], do: install_dependencies(opts)
-
-      # Generate configuration
-      unless opts[:no_config], do: generate_config(opts)
-
-      # Generate migrations
-      unless opts[:no_migrations], do: generate_migrations(opts)
-
-      # Generate example tenant resolver
-      generate_tenant_resolver(opts)
-
-      # Add routing examples
-      generate_routing_examples(opts)
-
-      Mix.shell().info("""
-
-      #{IO.ANSI.green()}✓ WhoThere installation completed!#{IO.ANSI.reset()}
-
-      Next steps:
-      1. Run database migrations: #{IO.ANSI.cyan()}mix ecto.migrate#{IO.ANSI.reset()}
-      2. Add the plug to your router (see generated example)
-      3. Configure your tenant resolver function
-      4. Start your Phoenix server and visit your application
-
-      For more information, see the documentation at https://hexdocs.pm/who_there
-      """)
-    rescue
-      error ->
-        Mix.shell().error("Installation failed: #{inspect(error)}")
-        Mix.shell().error("Run with --dry-run to see what would be installed")
-        exit({:shutdown, 1})
-    end
+    igniter
+    |> configure_who_there(app_name, repo)
+    |> add_domain_to_ash_config(app_name)
+    |> copy_migrations()
+    |> generate_tenant_resolver(app_name)
+    |> print_next_steps(app_name)
   end
 
-  defp ensure_phoenix_project! do
-    unless Mix.Project.get() do
-      Mix.raise("No Mix project found. Make sure you're in a Mix project directory.")
-    end
-
-    unless Code.ensure_loaded?(Phoenix) or phoenix_in_deps?() do
-      Mix.raise("Phoenix is not available. WhoThere requires a Phoenix application.")
-    end
+  defp detect_repo(igniter, app_name) do
+    # Try common repo naming patterns
+    module_name = Igniter.Project.Module.module_name(igniter)
+    "#{module_name}.Repo"
   end
 
-  defp phoenix_in_deps? do
-    Mix.Project.config()
-    |> Keyword.get(:deps, [])
-    |> Enum.any?(fn
-      {:phoenix, _} -> true
-      {:phoenix, _, _} -> true
-      _ -> false
-    end)
-  end
-
-  defp install_dependencies(opts) do
-    if opts[:dry_run] do
-      Mix.shell().info("Would add :who_there to deps in mix.exs")
-    else
-      # In a real implementation, this would modify mix.exs
-      Mix.shell().info("Dependencies already configured (WhoThere is installed)")
-    end
-  end
-
-  defp generate_config(opts) do
+  defp configure_who_there(igniter, app_name, repo) do
     config_content = """
-    # WhoThere Analytics Configuration
-    config :who_there, WhoThere.Repo,
-      username: "postgres",
-      password: "postgres", 
-      hostname: "localhost",
-      database: "#{app_name()}_repo",
-      show_sensitive_data_on_connection_error: true,
-      pool_size: 10
+    config :who_there,
+      repo: #{repo},
+      otp_app: :#{app_name}
 
-    # Privacy and tracking settings
+    # Privacy settings
     config :who_there,
       privacy_mode: false,
       bot_detection: true,
@@ -142,167 +84,194 @@ defmodule Mix.Tasks.WhoThere.Install do
       exclude_paths: [
         ~r/^\\/assets\\//,
         ~r/^\\/images\\//,
-        ~r/^\\/css\\//,
-        ~r/^\\/js\\//,
-        ~r/^\\/favicon.ico/,
+        ~r/^\\/_live\\//,
         "/health",
         "/metrics"
       ]
     """
 
-    write_config_file("config/who_there.exs", config_content, opts)
-
-    # Also add to main config
-    main_config_addition = """
-
-    # Import WhoThere configuration
-    import_config "who_there.exs"
-    """
-
-    append_to_config_file("config/config.exs", main_config_addition, opts)
+    Igniter.Project.Config.configure(
+      igniter,
+      "config.exs",
+      :who_there,
+      [:repo],
+      {:code, Sourceror.parse_string!(repo)}
+    )
+    |> Igniter.Project.Config.configure(
+      "config.exs",
+      :who_there,
+      [:otp_app],
+      app_name
+    )
   end
 
-  defp generate_migrations(opts) do
-    if opts[:dry_run] do
-      Mix.shell().info("Would generate WhoThere database migrations")
-    else
-      # Check if migrations already exist
-      migration_dir =
-        Path.join([Mix.Project.app_path(), "..", "..", "priv", "repo", "migrations"])
-
-      if migration_exists?(migration_dir) do
-        Mix.shell().info("WhoThere migrations already exist - skipping")
-      else
-        # In a real implementation, we would copy the migration from the library
-        Mix.shell().info("Database migrations would be generated")
-        Mix.shell().info("Run: mix ecto.migrate to apply the changes")
+  defp add_domain_to_ash_config(igniter, app_name) do
+    Igniter.Project.Config.configure(
+      igniter,
+      "config.exs",
+      app_name,
+      [:ash_domains],
+      [WhoThere.Domain],
+      updater: fn list ->
+        if WhoThere.Domain in list do
+          {:ok, list}
+        else
+          {:ok, list ++ [WhoThere.Domain]}
+        end
       end
+    )
+  end
+
+  defp copy_migrations(igniter) do
+    # Get the source migration from the library
+    source_dir = Application.app_dir(:who_there, "priv/repo/migrations")
+    
+    if File.dir?(source_dir) do
+      source_dir
+      |> File.ls!()
+      |> Enum.filter(&String.ends_with?(&1, ".exs"))
+      |> Enum.reduce(igniter, fn file, acc ->
+        source = Path.join(source_dir, file)
+        content = File.read!(source)
+        
+        # Generate new timestamp for the migration
+        timestamp = generate_migration_timestamp()
+        new_name = String.replace(file, ~r/^\d+/, timestamp)
+        dest = Path.join("priv/repo/migrations", new_name)
+        
+        Igniter.create_new_file(acc, dest, content, on_exists: :skip)
+      end)
+    else
+      # No pre-built migrations, generate them
+      Igniter.add_notice(igniter, """
+      
+      No pre-built migrations found. You may need to generate them:
+      
+          mix ash_postgres.generate_migrations --name add_who_there_tables
+          mix ecto.migrate
+      
+      """)
     end
   end
 
-  defp generate_tenant_resolver(opts) do
-    tenant_resolver = opts[:tenant_resolver] || "#{app_module()}.get_tenant/1"
+  defp generate_migration_timestamp do
+    {{y, m, d}, {hh, mm, ss}} = :calendar.universal_time()
+    "#{y}#{pad(m)}#{pad(d)}#{pad(hh)}#{pad(mm)}#{pad(ss)}"
+  end
 
-    resolver_content = """
-    defmodule #{app_module()}.Analytics do
+  defp pad(i) when i < 10, do: "0#{i}"
+  defp pad(i), do: "#{i}"
+
+  defp generate_tenant_resolver(igniter, app_name) do
+    module_name = Igniter.Project.Module.module_name(igniter)
+    
+    content = """
+    defmodule #{module_name}.Analytics.TenantResolver do
       @moduledoc \"\"\"
-      Analytics utilities and tenant resolution for WhoThere.
+      Resolves the tenant identifier for WhoThere analytics.
+      
+      Customize this module based on your multi-tenancy strategy.
       \"\"\"
 
       @doc \"\"\"
-      Resolves the tenant identifier from the current connection.
+      Extracts the tenant ID from the connection.
       
-      This is called by WhoThere to determine which tenant data belongs to.
-      Customize this function based on your application's tenant strategy.
+      Called by WhoThere.Plug to determine which tenant data belongs to.
+      
+      ## Examples
+      
+          # Single-tenant app (default tenant)
+          def get_tenant(_conn), do: "default"
+          
+          # Subdomain-based tenancy
+          def get_tenant(conn) do
+            case String.split(conn.host, ".") do
+              [tenant | _] when tenant != "www" -> tenant
+              _ -> "default"
+            end
+          end
+          
+          # Path-based tenancy
+          def get_tenant(conn) do
+            case conn.path_info do
+              ["tenants", tenant | _] -> tenant
+              _ -> "default"
+            end
+          end
       \"\"\"
-      def get_tenant(conn) do
-        # Example implementations - choose one based on your app:
-        
-        # Option 1: Extract from subdomain
-        # case String.split(conn.host, ".") do
-        #   [tenant | _] when tenant != "www" -> tenant
-        #   _ -> "default"
-        # end
-        
-        # Option 2: Extract from session
-        # Plug.Conn.get_session(conn, :current_tenant)
-        
-        # Option 3: Extract from path
-        # case conn.path_info do
-        #   [tenant | _] -> tenant
-        #   _ -> "default" 
-        # end
-        
-        # Option 4: Static tenant (for single-tenant apps)
+      def get_tenant(_conn) do
+        # Default implementation - customize for your app
         "default"
       end
-    end
-    """
 
-    write_file("lib/#{app_name()}/analytics.ex", resolver_content, opts)
-  end
-
-  defp generate_routing_examples(opts) do
-    router_example = """
-    # Add this to your router.ex file
-
-    # In your router.ex, add the analytics pipeline:
-    pipeline :analytics do
-      plug WhoThere.Plug, 
-        tenant_resolver: &#{app_module()}.Analytics.get_tenant/1,
-        track_page_views: true,
-        track_api_calls: false,
-        exclude_paths: [~r/^\\/api\\/health/]
-    end
-
-    # Then add it to your routes:
-    scope "/", #{app_module()}Web do
-      pipe_through [:browser, :analytics]  # Add :analytics here
+      @doc \"\"\"
+      Converts tenant identifier to a UUID for storage.
       
-      get "/", PageController, :home
-      # ... your other routes
-    end
+      WhoThere stores tenant_id as UUID. This function maps your
+      tenant identifier (string, subdomain, etc.) to a UUID.
+      \"\"\"
+      def tenant_to_uuid(tenant_id) when is_binary(tenant_id) do
+        # Option 1: Use a deterministic UUID based on tenant name
+        :crypto.hash(:sha256, tenant_id)
+        |> binary_part(0, 16)
+        |> encode_uuid()
+        
+        # Option 2: Look up from database
+        # MyApp.Tenants.get_by_slug!(tenant_id).id
+      end
 
-    # For API routes (optional):
-    scope "/api", #{app_module()}Web do  
-      pipe_through [:api, :analytics]  # Add :analytics here if you want API tracking
-      
-      # ... your API routes
-    end
-    """
-
-    write_file("docs/router_integration_example.ex", router_example, opts)
-  end
-
-  defp write_config_file(path, content, opts) do
-    if opts[:dry_run] do
-      Mix.shell().info("Would create: #{path}")
-    else
-      File.mkdir_p!(Path.dirname(path))
-      File.write!(path, content)
-      Mix.shell().info("Created: #{path}")
-    end
-  end
-
-  defp append_to_config_file(path, content, opts) do
-    if opts[:dry_run] do
-      Mix.shell().info("Would append to: #{path}")
-    else
-      if File.exists?(path) do
-        File.write!(path, File.read!(path) <> content)
-        Mix.shell().info("Updated: #{path}")
-      else
-        Mix.shell().info("Config file #{path} not found - skipping")
+      defp encode_uuid(<<a::32, b::16, c::16, d::16, e::48>>) do
+        [a, b, c, d, e]
+        |> Enum.map(&Integer.to_string(&1, 16))
+        |> Enum.map(&String.pad_leading(&1, 8, "0"))
+        |> Enum.join("-")
+        |> String.downcase()
       end
     end
+    """
+
+    path = "lib/#{app_name}/analytics/tenant_resolver.ex"
+    Igniter.create_new_file(igniter, path, content, on_exists: :skip)
   end
 
-  defp write_file(path, content, opts) do
-    if opts[:dry_run] do
-      Mix.shell().info("Would create: #{path}")
-    else
-      File.mkdir_p!(Path.dirname(path))
-      File.write!(path, content)
-      Mix.shell().info("Created: #{path}")
-    end
-  end
+  defp print_next_steps(igniter, app_name) do
+    module_name = app_name |> to_string() |> Macro.camelize()
 
-  defp migration_exists?(dir) do
-    if File.dir?(dir) do
-      dir
-      |> File.ls!()
-      |> Enum.any?(&String.contains?(&1, "analytics"))
-    else
-      false
-    end
-  end
+    Igniter.add_notice(igniter, """
 
-  defp app_name do
-    Mix.Project.config() |> Keyword.get(:app) |> to_string()
-  end
+    ✅ WhoThere installed successfully!
 
-  defp app_module do
-    app_name()
-    |> Macro.camelize()
+    Next steps:
+
+    1. Run migrations:
+       
+       mix ecto.migrate
+
+    2. Add WhoThere.Plug to your router:
+
+       # In lib/#{app_name}_web/router.ex
+       pipeline :browser do
+         # ... existing plugs ...
+         plug WhoThere.Plug,
+           tenant_resolver: &#{module_name}.Analytics.TenantResolver.get_tenant/1
+       end
+
+    3. (Optional) Add the LiveDashboard page:
+
+       # In lib/#{app_name}_web/router.ex
+       live_dashboard "/dashboard",
+         metrics: #{module_name}Web.Telemetry,
+         additional_pages: [
+           who_there: WhoThere.PhoenixIntegration.LiveDashboardPage
+         ]
+
+    4. Customize the tenant resolver:
+       
+       Edit lib/#{app_name}/analytics/tenant_resolver.ex
+
+    For more information, see the documentation:
+    https://hexdocs.pm/who_there
+
+    """)
   end
 end

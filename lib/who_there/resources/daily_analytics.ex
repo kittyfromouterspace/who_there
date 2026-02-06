@@ -46,6 +46,8 @@ defmodule WhoThere.Resources.DailyAnalytics do
     end
 
     update :update do
+      require_atomic?(false)
+
       accept([
         :unique_visitors,
         :page_views,

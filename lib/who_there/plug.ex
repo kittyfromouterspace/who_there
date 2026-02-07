@@ -481,6 +481,7 @@ defmodule WhoThere.Plug do
   defp process_analytics_tracking(tracking_data, start_time) do
     try do
       # Create the analytics event
+      # Note: session_id is omitted until session persistence is implemented
       event_attrs = %{
         tenant_id: tracking_data.tenant,
         event_type: tracking_data.event_type,
@@ -492,7 +493,6 @@ defmodule WhoThere.Plug do
         ip_address: Map.get(tracking_data, :ip_address),
         country_code: Map.get(tracking_data, :country_code),
         city: Map.get(tracking_data, :city),
-        session_id: Map.get(tracking_data, :session_id),
         bot_name: Map.get(tracking_data, :bot_name),
         metadata: build_metadata(tracking_data)
       }

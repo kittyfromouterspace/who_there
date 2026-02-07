@@ -316,7 +316,7 @@ defmodule WhoThere.SessionTracker do
   end
 
   defp generate_session_id do
-    :crypto.strong_rand_bytes(16) |> Base.url_encode64(padding: false)
+    Ash.UUID.generate()
   end
 
   defp has_pii_in_user_agent?(session_data) do

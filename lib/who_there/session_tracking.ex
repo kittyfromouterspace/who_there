@@ -227,8 +227,7 @@ defmodule WhoThere.SessionTracking do
   end
 
   defp generate_session_id do
-    # Generate a cryptographically secure session ID
-    :crypto.strong_rand_bytes(32) |> Base.url_encode64(padding: false)
+    Ash.UUID.generate()
   end
 
   defp generate_fingerprint(conn, opts) do

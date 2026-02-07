@@ -16,16 +16,16 @@ defmodule WhoThere.RouteFilter do
       config :who_there, :route_filters,
         # Global exclusions (applied to all tenants)
         exclude_paths: [
-          ~r/^\\/assets\\//,
-          ~r/^\\/images\\//,
+          "/assets/*",
+          "/images/*",
           "/health",
           "/metrics"
         ],
         
         # Include only these patterns (if specified, acts as allowlist)
         include_only: [
-          ~r/^\\/dashboard\\//,
-          ~r/^\\/api\\/v1\\//
+          "/dashboard/*",
+          "/api/v1/*"
         ],
         
         # Method-specific exclusions

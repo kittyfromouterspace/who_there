@@ -23,9 +23,13 @@ defmodule WhoThere do
 
   @impl true
   def start(_type, _args) do
-    children = [
-      WhoThere.Repo
-    ]
+    children =
+      if Application.get_env(:who_there, :repo_delegate) do
+        # Host app manages the repo — don't start our own
+        []
+      else
+        [WhoThere.Repo]
+      end
 
     opts = [strategy: :one_for_one, name: WhoThere.Supervisor]
     Supervisor.start_link(children, opts)
@@ -39,5 +43,5 @@ defmodule WhoThere do
   @doc """
   Returns the configured WhoThere repo.
   """
-  def repo, do: WhoThere.Repo
+  def repo, do: Application.get_env(:who_there, :repo_delegate, WhoThere.Repo)
 end

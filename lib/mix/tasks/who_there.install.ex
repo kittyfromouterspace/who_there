@@ -40,9 +40,9 @@ if Code.ensure_loaded?(Igniter.Mix.Task) do
     end
 
     @impl Igniter.Mix.Task
-    def igniter(igniter, argv) do
+    def igniter(igniter) do
       {opts, _} =
-        OptionParser.parse!(argv,
+        OptionParser.parse!(igniter.args.argv,
           switches: [
             repo: :string,
             dry_run: :boolean

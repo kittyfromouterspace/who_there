@@ -17,10 +17,8 @@ defmodule WhoThere.AnalyticsQuery do
   All queries respect tenant isolation and privacy settings.
   """
 
-  alias WhoThere.{Domain, Resources}
-  alias WhoThere.Resources.{AnalyticsEvent, Session, DailyAnalytics}
+  alias WhoThere.Resources.AnalyticsEvent
 
-  import Ash.Query
   require Ash.Query
 
   @doc """
@@ -416,7 +414,7 @@ defmodule WhoThere.AnalyticsQuery do
     |> length()
   end
 
-  defp calculate_base_session_metrics(opts) do
+  defp calculate_base_session_metrics(_opts) do
     # This would implement comprehensive session analysis
     # For now, returning mock data structure
     {:ok,
@@ -429,12 +427,12 @@ defmodule WhoThere.AnalyticsQuery do
      }}
   end
 
-  defp calculate_segmented_metrics(opts) do
+  defp calculate_segmented_metrics(_opts) do
     # This would implement segmentation analysis
     {:ok, []}
   end
 
-  defp analyze_referrer_patterns(opts) do
+  defp analyze_referrer_patterns(_opts) do
     # This would implement referrer analysis
     {:ok,
      %{
@@ -443,7 +441,7 @@ defmodule WhoThere.AnalyticsQuery do
      }}
   end
 
-  defp classify_traffic_sources(opts) do
+  defp classify_traffic_sources(_opts) do
     # This would implement source classification
     {:ok,
      %{
@@ -454,12 +452,12 @@ defmodule WhoThere.AnalyticsQuery do
      }}
   end
 
-  defp execute_geographic_query(opts) do
+  defp execute_geographic_query(_opts) do
     # This would implement geographic analysis
     {:ok, []}
   end
 
-  defp execute_device_analysis_query(opts) do
+  defp execute_device_analysis_query(_opts) do
     # This would implement device analysis
     {:ok,
      %{
@@ -469,7 +467,7 @@ defmodule WhoThere.AnalyticsQuery do
      }}
   end
 
-  defp execute_bot_analysis_query(opts) do
+  defp execute_bot_analysis_query(_opts) do
     # This would implement bot traffic analysis
     {:ok,
      %{
@@ -479,7 +477,7 @@ defmodule WhoThere.AnalyticsQuery do
      }}
   end
 
-  defp execute_performance_query(opts) do
+  defp execute_performance_query(_opts) do
     # This would implement performance analysis
     {:ok,
      %{
@@ -489,7 +487,7 @@ defmodule WhoThere.AnalyticsQuery do
      }}
   end
 
-  defp calculate_period_metrics(opts) do
+  defp calculate_period_metrics(_opts) do
     # This would calculate metrics for a specific period
     {:ok, %{}}
   end

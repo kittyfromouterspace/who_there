@@ -35,7 +35,7 @@ defmodule WhoThere.Domain do
   """
   def track_event(event_attrs, opts \\ []) when is_map(event_attrs) do
     tenant = Keyword.get(opts, :tenant)
-    actor = Keyword.get(opts, :actor)
+    _actor = Keyword.get(opts, :actor)
     
     unless tenant do
       {:error, "Tenant is required for tracking events"}
@@ -66,7 +66,7 @@ defmodule WhoThere.Domain do
   """
   def track_session(session_attrs, opts \\ []) when is_map(session_attrs) do
     tenant = Keyword.get(opts, :tenant)
-    actor = Keyword.get(opts, :actor)
+    _actor = Keyword.get(opts, :actor)
     
     unless tenant do
       {:error, "Tenant is required for tracking sessions"}

@@ -191,7 +191,6 @@ defmodule WhoThere.RouteFilter do
             case check_filtered_rules(request_info, tenant, opts) do
               :allow -> :allow
               {:block, reason} -> {:block, reason}
-              :block -> :block
             end
         end
     end
@@ -396,14 +395,14 @@ defmodule WhoThere.RouteFilter do
     evaluate_rules(request_info, rules, opts)
   end
 
-  defp check_tenant_rules(request_info, nil, _opts), do: :ok
+  defp check_tenant_rules(_request_info, nil, _opts), do: :ok
   defp check_tenant_rules(request_info, tenant, opts) do
     rules = compile_rules(tenant)
     evaluate_rules(request_info, rules, opts)
   end
   
   # Advanced rule filtering with allowlist/blocklist precedence
-  defp check_filtered_rules(request_info, tenant, opts) do
+  defp check_filtered_rules(request_info, tenant, _opts) do
     # Get global and tenant-specific rules
     global_rules = compile_rules(:global)
     tenant_rules = if tenant, do: compile_rules(tenant), else: %{}

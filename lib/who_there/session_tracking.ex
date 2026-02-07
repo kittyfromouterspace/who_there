@@ -40,7 +40,6 @@ defmodule WhoThere.SessionTracking do
   require Logger
 
   alias WhoThere.{Privacy, BotDetector}
-  alias WhoThere.Resources.Session
 
   @default_cookie_name "who_there_session"
   @default_cookie_ttl_days 30
@@ -76,7 +75,7 @@ defmodule WhoThere.SessionTracking do
   """
   def get_or_create_session(conn, opts) do
     tenant = Keyword.fetch!(opts, :tenant)
-    privacy_mode = Keyword.get(opts, :privacy_mode, false)
+    _privacy_mode = Keyword.get(opts, :privacy_mode, false)
     bot_detection = Keyword.get(opts, :bot_detection, true)
     
     # Skip session tracking for bots unless explicitly disabled
@@ -140,13 +139,10 @@ defmodule WhoThere.SessionTracking do
   This should be called periodically (e.g., via a scheduled job) to clean up
   expired sessions and maintain database performance.
   """
-  def expire_sessions(tenant, timeout_minutes \\ nil) do
-    timeout = timeout_minutes || get_session_timeout_minutes()
-    cutoff_time = DateTime.add(DateTime.utc_now(), -timeout * 60, :second)
+  def expire_sessions(_tenant, timeout_minutes \\ nil) do
+    _timeout = timeout_minutes || get_session_timeout_minutes()
 
     # This would use Ash queries to delete expired sessions
-    # For now, we'll log the operation
-    Logger.debug("Would expire sessions older than #{cutoff_time} for tenant #{tenant}")
     {:ok, 0}
   end
 
@@ -319,24 +315,32 @@ defmodule WhoThere.SessionTracking do
   end
 
   defp find_session(session_id, tenant) do
-    # This would use Ash to find the session
-    # For now, returning a mock structure
-    {:ok, %{
-      id: session_id,
-      tenant_id: tenant,
-      started_at: DateTime.utc_now(),
-      last_seen_at: DateTime.utc_now(),
-      page_count: 1,
-      user_agent: nil,
-      fingerprint: nil,
-      metadata: %{}
-    }}
+    # TODO: use Ash to find the session
+    # Stub returns mock data; will be replaced with actual DB query
+    if Application.get_env(:who_there, :__testing_no_session__) do
+      {:error, :not_found}
+    else
+      {:ok, %{
+        id: session_id,
+        tenant_id: tenant,
+        started_at: DateTime.utc_now(),
+        last_seen_at: DateTime.utc_now(),
+        page_count: 1,
+        user_agent: nil,
+        fingerprint: nil,
+        ip_address: nil,
+        metadata: %{}
+      }}
+    end
   end
 
-  defp create_session(session_attrs, tenant) do
-    # This would use Ash to create the session
-    # For now, returning success
-    {:ok, session_attrs}
+  defp create_session(session_attrs, _tenant) do
+    # TODO: use Ash to create the session
+    if Application.get_env(:who_there, :__testing_error__) do
+      {:error, :creation_failed}
+    else
+      {:ok, session_attrs}
+    end
   end
 
   defp update_session(session, update_attrs, _tenant) do
@@ -383,7 +387,7 @@ defmodule WhoThere.SessionTracking do
     end
   end
 
-  defp get_client_ip(conn, opts) do
+  defp get_client_ip(conn, _opts) do
     # Check for forwarded IPs first, then fall back to remote_ip
     forwarded_ip = 
       get_req_header(conn, "x-forwarded-for") |> List.first() ||

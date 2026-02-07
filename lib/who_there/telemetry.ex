@@ -9,7 +9,7 @@ defmodule WhoThere.Telemetry do
 
   require Logger
 
-  alias WhoThere.{Domain, SessionTracker, Privacy, BotDetector}
+  alias WhoThere.{Domain, SessionTracker, BotDetector}
 
   @doc """
   Attaches all WhoThere telemetry handlers.
@@ -297,7 +297,7 @@ defmodule WhoThere.Telemetry do
 
   defp handle_live_view_render_stop(_event_name, measurements, metadata, _config) do
     if tracking_enabled?(metadata) do
-      render_start = Process.get(:who_there_render_start, %{})
+      _render_start = Process.get(:who_there_render_start, %{})
 
       # Only track slow renders to avoid noise
       duration_ms = System.convert_time_unit(measurements.duration, :native, :millisecond)
@@ -534,7 +534,7 @@ defmodule WhoThere.Telemetry do
   end
 
   defp bot_tracking_enabled?(metadata) do
-    tenant = extract_tenant(metadata)
+    _tenant = extract_tenant(metadata)
     # This would check tenant configuration
     # For now, default to enabled
     Application.get_env(:who_there, :track_bots, true)
@@ -553,10 +553,9 @@ defmodule WhoThere.Telemetry do
   end
 
   defp tenant_tracking_enabled?(metadata) do
-    tenant = extract_tenant(metadata)
+    _tenant = extract_tenant(metadata)
     # This would check tenant-specific configuration
-    # For now, default to enabled
-    true
+    Application.get_env(:who_there, :tenant_tracking_enabled, true)
   end
 
   defp get_slow_render_threshold do

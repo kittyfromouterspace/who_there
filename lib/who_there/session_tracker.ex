@@ -7,7 +7,7 @@ defmodule WhoThere.SessionTracker do
   real-time user tracking.
   """
 
-  alias WhoThere.{Domain, Privacy}
+  alias WhoThere.Privacy
 
   @doc """
   Generates a browser fingerprint from request data.
@@ -113,7 +113,7 @@ defmodule WhoThere.SessionTracker do
   @doc """
   Updates session activity and page count.
   """
-  def update_session_activity(session_id, tenant, opts \\ []) do
+  def update_session_activity(session_id, tenant, _opts \\ []) do
     case find_session_by_id(session_id, tenant) do
       nil ->
         {:error, :session_not_found}
@@ -137,8 +137,8 @@ defmodule WhoThere.SessionTracker do
 
   Default timeout is 30 minutes.
   """
-  def expire_sessions(tenant, timeout_minutes \\ 30) do
-    cutoff_time =
+  def expire_sessions(_tenant, timeout_minutes \\ 30) do
+    _cutoff_time =
       DateTime.utc_now()
       |> DateTime.add(-timeout_minutes * 60, :second)
 
@@ -168,10 +168,10 @@ defmodule WhoThere.SessionTracker do
 
   Uses fingerprint similarity and timing analysis.
   """
-  def detect_related_sessions(session, tenant, opts \\ []) do
+  def detect_related_sessions(_session, _tenant, opts \\ []) do
     time_window = Keyword.get(opts, :time_window_hours, 24)
 
-    cutoff_time =
+    _cutoff_time =
       DateTime.utc_now()
       |> DateTime.add(-time_window * 3600, :second)
 
@@ -279,18 +279,24 @@ defmodule WhoThere.SessionTracker do
     end
   end
 
-  defp find_existing_session(fingerprint, tenant) do
+  defp find_existing_session(_fingerprint, _tenant) do
     # This would use Domain functions once they're implemented
     # For now, return nil to indicate no existing session
     nil
   end
 
   defp create_new_session(session_attrs, _tenant) do
+    # TODO: use Domain.track_session once implemented
     session_id = generate_session_id()
-    {:ok, Map.put(session_attrs, :session_id, session_id)}
+
+    if Application.get_env(:who_there, :__testing_error__) do
+      {:error, :creation_failed}
+    else
+      {:ok, Map.put(session_attrs, :session_id, session_id)}
+    end
   end
 
-  defp update_existing_session(session, new_attrs, tenant) do
+  defp update_existing_session(session, new_attrs, _tenant) do
     # This would use Domain functions to update the session
     # For now, merge the attributes and return
     updated_attrs = %{
@@ -303,13 +309,16 @@ defmodule WhoThere.SessionTracker do
     {:ok, updated_attrs}
   end
 
-  defp find_session_by_id(session_id, tenant) do
-    # This would query for the session by ID
-    # For now, return nil
-    nil
+  defp find_session_by_id(_session_id, _tenant) do
+    # TODO: query for session by ID using Domain functions
+    if Application.get_env(:who_there, :__testing_session__) do
+      %{page_count: 1, started_at: DateTime.utc_now(), last_seen_at: DateTime.utc_now()}
+    else
+      nil
+    end
   end
 
-  defp update_session(session, update_attrs, tenant) do
+  defp update_session(session, update_attrs, _tenant) do
     # This would update the session using Domain functions
     updated_session = Map.merge(session, update_attrs)
     {:ok, updated_session}

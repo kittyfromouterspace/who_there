@@ -59,14 +59,14 @@ defmodule Mix.Tasks.WhoThere.Install do
     |> print_next_steps(app_name)
   end
 
-  defp detect_repo(igniter, app_name) do
+  defp detect_repo(igniter, _app_name) do
     # Try common repo naming patterns
-    module_name = Igniter.Project.Module.module_name(igniter)
+    module_name = Igniter.Project.Module.module_name(igniter, "WhoThere")
     "#{module_name}.Repo"
   end
 
   defp configure_who_there(igniter, app_name, repo) do
-    config_content = """
+    _config_content = """
     config :who_there,
       repo: #{repo},
       otp_app: :#{app_name}
@@ -163,7 +163,7 @@ defmodule Mix.Tasks.WhoThere.Install do
   defp pad(i), do: "#{i}"
 
   defp generate_tenant_resolver(igniter, app_name) do
-    module_name = Igniter.Project.Module.module_name(igniter)
+    module_name = Igniter.Project.Module.module_name(igniter, "WhoThere")
     
     content = """
     defmodule #{module_name}.Analytics.TenantResolver do

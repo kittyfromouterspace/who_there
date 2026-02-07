@@ -151,11 +151,6 @@ defmodule WhoThere.GeoHeaderParser do
     ip: "fly-client-ip"
   }
 
-  @generic_headers %{
-    ip: "x-forwarded-for",
-    real_ip: "x-real-ip"
-  }
-
   @default_provider_priority [:cloudflare, :fastly, :vercel, :fly_io, :aws_alb, :nginx, :generic]
 
   @doc """
@@ -288,7 +283,7 @@ defmodule WhoThere.GeoHeaderParser do
     |> Enum.into(%{}, fn {key, value} -> {String.downcase(key), value} end)
   end
 
-  defp extract_ip_address(conn, opts \\ []) do
+  defp extract_ip_address(conn, _opts \\ []) do
     # Try proxy headers first, then fall back to remote_ip
     forwarded_ips = [
       get_header_value(conn, "cf-connecting-ip"),
@@ -353,7 +348,7 @@ defmodule WhoThere.GeoHeaderParser do
     end)
   end
 
-  defp parse_with_provider(headers, :cloudflare, opts) do
+  defp parse_with_provider(headers, :cloudflare, _opts) do
     case extract_cloudflare_data(headers) do
       {:ok, geo_data} -> 
         {:ok, %{geo_data | provider: :cloudflare, confidence: 0.95}}
@@ -362,7 +357,7 @@ defmodule WhoThere.GeoHeaderParser do
     end
   end
 
-  defp parse_with_provider(headers, :fastly, opts) do
+  defp parse_with_provider(headers, :fastly, _opts) do
     case extract_fastly_data(headers) do
       {:ok, geo_data} -> 
         {:ok, %{geo_data | provider: :fastly, confidence: 0.90}}
@@ -371,7 +366,7 @@ defmodule WhoThere.GeoHeaderParser do
     end
   end
 
-  defp parse_with_provider(headers, :vercel, opts) do
+  defp parse_with_provider(headers, :vercel, _opts) do
     case extract_vercel_data(headers) do
       {:ok, geo_data} -> 
         {:ok, %{geo_data | provider: :vercel, confidence: 0.85}}
@@ -380,7 +375,7 @@ defmodule WhoThere.GeoHeaderParser do
     end
   end
 
-  defp parse_with_provider(headers, :fly_io, opts) do
+  defp parse_with_provider(headers, :fly_io, _opts) do
     case extract_fly_io_data(headers) do
       {:ok, geo_data} -> 
         {:ok, %{geo_data | provider: :fly_io, confidence: 0.80}}
@@ -389,7 +384,7 @@ defmodule WhoThere.GeoHeaderParser do
     end
   end
 
-  defp parse_with_provider(headers, provider, opts) do
+  defp parse_with_provider(_headers, provider, _opts) do
     Logger.debug("Unsupported geo provider: #{provider}")
     {:error, {:unsupported_provider, provider}}
   end
@@ -493,14 +488,14 @@ defmodule WhoThere.GeoHeaderParser do
     (is_nil(geo_data.latitude) and is_nil(geo_data.longitude))
   end
 
-  defp enrich_with_ip_geolocation(geo_data, ip_address, provider, opts) do
+  defp enrich_with_ip_geolocation(geo_data, ip_address, provider, _opts) do
     # This would integrate with actual IP geolocation services
     # For now, return the original data
     Logger.debug("Would enrich geo data using #{provider} for IP: #{ip_address}")
     {:ok, geo_data}
   end
 
-  defp detect_vpn_proxy(ip_address, headers, opts) do
+  defp detect_vpn_proxy(_ip_address, headers, _opts) do
     # Basic VPN/proxy detection logic
     # This would be enhanced with actual detection services
     

@@ -113,12 +113,12 @@ defmodule WhoThere.GeographicDataParser do
 
   def anonymize_ip({a, b, _c, _d}, :full), do: {a, b, 0, 0}
 
-  def anonymize_ip({a, b, c, d, e, f, g, _h}, :partial) do
+  def anonymize_ip({a, b, c, _d, _e, _f, _g, _h}, :partial) do
     # IPv6 - zero last 80 bits (keep first 48 bits)
     {a, b, c, 0, 0, 0, 0, 0}
   end
 
-  def anonymize_ip({a, b, c, d, e, f, g, h}, :full) do
+  def anonymize_ip({a, b, _c, _d, _e, _f, _g, _h}, :full) do
     # IPv6 - zero last 80 bits more aggressively
     {a, b, 0, 0, 0, 0, 0, 0}
   end
@@ -193,7 +193,7 @@ defmodule WhoThere.GeographicDataParser do
   Uses heuristics and known VPN/proxy IP ranges to identify
   potentially privacy-conscious users.
   """
-  def detect_vpn_proxy(ip, opts \\ []) do
+  def detect_vpn_proxy(ip, _opts \\ []) do
     checks = [
       check_known_vpn_ranges(ip),
       check_hosting_providers(ip),
@@ -432,7 +432,7 @@ defmodule WhoThere.GeographicDataParser do
     builtin_ip_lookup(ip)
   end
 
-  defp perform_geolocation(ip, provider, opts) do
+  defp perform_geolocation(_ip, _provider, _opts) do
     # Placeholder for external geolocation providers
     # Would integrate with MaxMind, IP-API, etc.
     {:error, :provider_not_implemented}

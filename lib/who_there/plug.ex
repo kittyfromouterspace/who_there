@@ -72,7 +72,6 @@ defmodule WhoThere.Plug do
     SessionTracker,
     BotDetector,
     GeographicDataParser,
-    RouteFiltering,
     Privacy
   }
 
@@ -367,7 +366,7 @@ defmodule WhoThere.Plug do
     end)
   end
 
-  defp determine_event_type(conn, opts) do
+  defp determine_event_type(conn, _opts) do
     cond do
       is_api_request?(conn) -> :api_call
       is_page_request?(conn) -> :page_view
@@ -375,7 +374,7 @@ defmodule WhoThere.Plug do
     end
   end
 
-  defp maybe_add_session_data(tracking_data, conn, opts) do
+  defp maybe_add_session_data(tracking_data, _conn, opts) do
     if opts.session_tracking do
       conn_data = %{
         user_agent: tracking_data.user_agent,
@@ -478,7 +477,7 @@ defmodule WhoThere.Plug do
 
   defp format_ip_for_storage(ip, _opts), do: ip
 
-  defp process_analytics_tracking(tracking_data, start_time) do
+  defp process_analytics_tracking(tracking_data, _start_time) do
     try do
       # Create the analytics event
       # Note: session_id is omitted until session persistence is implemented

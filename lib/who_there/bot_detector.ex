@@ -31,43 +31,46 @@ defmodule WhoThere.BotDetector do
           confidence: float()
         }
 
-  # Known bot user agent patterns
-  @bot_patterns [
-    # Search engines
-    {~r/googlebot/i, :search_engine, "Googlebot"},
-    {~r/bingbot/i, :search_engine, "Bingbot"},
-    {~r/slurp/i, :search_engine, "Yahoo Slurp"},
-    {~r/duckduckbot/i, :search_engine, "DuckDuckBot"},
-    {~r/baiduspider/i, :search_engine, "Baiduspider"},
-    {~r/yandexbot/i, :search_engine, "YandexBot"},
+  # Known bot user agent patterns — defined as a function (not module attribute)
+  # because compiled regexes can't be injected via @ in Elixir 1.19+.
+  defp bot_patterns do
+    [
+      # Search engines
+      {~r/googlebot/i, :search_engine, "Googlebot"},
+      {~r/bingbot/i, :search_engine, "Bingbot"},
+      {~r/slurp/i, :search_engine, "Yahoo Slurp"},
+      {~r/duckduckbot/i, :search_engine, "DuckDuckBot"},
+      {~r/baiduspider/i, :search_engine, "Baiduspider"},
+      {~r/yandexbot/i, :search_engine, "YandexBot"},
 
-    # Social media
-    {~r/facebookexternalhit/i, :social_media, "Facebook"},
-    {~r/twitterbot/i, :social_media, "Twitter"},
-    {~r/linkedinbot/i, :social_media, "LinkedIn"},
-    {~r/slackbot/i, :social_media, "Slack"},
-    {~r/discordbot/i, :social_media, "Discord"},
-    {~r/telegrambot/i, :social_media, "Telegram"},
+      # Social media
+      {~r/facebookexternalhit/i, :social_media, "Facebook"},
+      {~r/twitterbot/i, :social_media, "Twitter"},
+      {~r/linkedinbot/i, :social_media, "LinkedIn"},
+      {~r/slackbot/i, :social_media, "Slack"},
+      {~r/discordbot/i, :social_media, "Discord"},
+      {~r/telegrambot/i, :social_media, "Telegram"},
 
-    # SEO and monitoring
-    {~r/ahrefsbot/i, :seo, "AhrefsBot"},
-    {~r/semrushbot/i, :seo, "SemrushBot"},
-    {~r/mj12bot/i, :seo, "MJ12bot"},
-    {~r/dotbot/i, :seo, "DotBot"},
-    {~r/uptimerobot/i, :monitoring, "UptimeRobot"},
-    {~r/pingdom/i, :monitoring, "Pingdom"},
+      # SEO and monitoring
+      {~r/ahrefsbot/i, :seo, "AhrefsBot"},
+      {~r/semrushbot/i, :seo, "SemrushBot"},
+      {~r/mj12bot/i, :seo, "MJ12bot"},
+      {~r/dotbot/i, :seo, "DotBot"},
+      {~r/uptimerobot/i, :monitoring, "UptimeRobot"},
+      {~r/pingdom/i, :monitoring, "Pingdom"},
 
-    # Security scanners
-    {~r/nessus/i, :security, "Nessus"},
-    {~r/nmap/i, :security, "Nmap"},
-    {~r/masscan/i, :security, "Masscan"},
+      # Security scanners
+      {~r/nessus/i, :security, "Nessus"},
+      {~r/nmap/i, :security, "Nmap"},
+      {~r/masscan/i, :security, "Masscan"},
 
-    # Generic bot patterns
-    {~r/bot\b/i, :unknown_bot, "Generic Bot"},
-    {~r/crawler/i, :unknown_bot, "Crawler"},
-    {~r/spider/i, :unknown_bot, "Spider"},
-    {~r/scraper/i, :unknown_bot, "Scraper"}
-  ]
+      # Generic bot patterns
+      {~r/bot\b/i, :unknown_bot, "Generic Bot"},
+      {~r/crawler/i, :unknown_bot, "Crawler"},
+      {~r/spider/i, :unknown_bot, "Spider"},
+      {~r/scraper/i, :unknown_bot, "Scraper"}
+    ]
+  end
 
   # Known bot IP ranges would be loaded from configuration in production
 
@@ -167,7 +170,7 @@ defmodule WhoThere.BotDetector do
 
   @spec find_bot_pattern(String.t()) :: {Regex.t(), bot_type(), String.t()} | nil
   defp find_bot_pattern(user_agent) when is_binary(user_agent) do
-    Enum.find_value(@bot_patterns, fn {pattern, bot_type, name} ->
+    Enum.find_value(bot_patterns(), fn {pattern, bot_type, name} ->
       if Regex.match?(pattern, user_agent) do
         {pattern, bot_type, name}
       end

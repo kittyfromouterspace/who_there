@@ -285,14 +285,9 @@ defmodule WhoThere.SessionTracker do
     nil
   end
 
-  defp create_new_session(session_attrs, tenant) do
-    # This would use Domain.track_session once it's implemented
+  defp create_new_session(session_attrs, _tenant) do
     session_id = generate_session_id()
-
-    session_attrs = Map.put(session_attrs, :session_id, session_id)
-
-    # Placeholder return
-    {:ok, struct(%{}, session_attrs)}
+    {:ok, Map.put(session_attrs, :session_id, session_id)}
   end
 
   defp update_existing_session(session, new_attrs, tenant) do
